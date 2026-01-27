@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class SegmentAnyBone(nn.Module):
     """Placeholder for legacy SegmentAnyBone (use SegmentAnyBoneModel instead)."""
-    def __init__(self, in_channels=1, out_channels=2, img_size=(96,96,96), **kwargs):
+    def __init__(self, in_channels=1, out_channels=2, spatial_size=(96,96,96), **kwargs):
         super().__init__()
         self.encoder = nn.Sequential(
             nn.Conv3d(in_channels, 64, 3, padding=1), nn.ReLU(),
@@ -38,10 +38,11 @@ class SegmentAnyBone(nn.Module):
 
 class SegmentAnyModel3(nn.Module):
     """SAM3 placeholder using SwinUNETR backbone."""
-    def __init__(self, in_channels=1, out_channels=2, img_size=(96,96,96), **kwargs):
+    def __init__(self, in_channels=1, out_channels=2, spatial_size=(96,96,96), **kwargs):
         super().__init__()
-        self.backbone = SwinUNETR(img_size=img_size, in_channels=in_channels, 
-                                   out_channels=out_channels, feature_size=48)
+        # Fix: MONAI 1.5.1 doesn't accept img_size/spatial_size for SwinUNETR
+        self.backbone = SwinUNETR(in_channels=in_channels, 
+                                   out_channels=out_channels, feature_size=48, spatial_dims=3)
     def forward(self, x): return self.backbone(x)
 
 
@@ -62,9 +63,13 @@ def get_model(model_config: Dict[str, Any]) -> nn.Module:
         )
     elif architecture == "UNETR":
         cfg = model_config.get("unetr", {})
+        # Note: UNETR usually uses img_size, but newer MONAI might prefer spatial_size
+        # We try explicit parameters if possible, or fallback to MONAI defaults
+        spatial_size = tuple(cfg.get("img_size", [96, 96, 96]))
+        logger.info(f"UNETR using spatial_size: {spatial_size}")
         model = UNETR(
+            img_size=spatial_size, # UNETR typically still uses img_size in signature
             in_channels=in_channels, out_channels=out_channels,
-            img_size=tuple(cfg.get("img_size", [96,96,96])),
             feature_size=cfg.get("feature_size", 16),
             hidden_size=cfg.get("hidden_size", 768),
             mlp_dim=cfg.get("mlp_dim", 3072),
@@ -72,12 +77,23 @@ def get_model(model_config: Dict[str, Any]) -> nn.Module:
         )
     elif architecture == "SWINUNETR":
         cfg = model_config.get("swin_unetr", {})
+        # MONAI 1.5.1 SwinUNETR signature:
+        # (in_channels, out_channels, img_size, feature_size, depths, num_heads, ...)
+        # Wait, the user output shows 'img_size' is NOT in parameters!
+        # It shows: ['self', 'in_channels', 'out_channels', 'patch_size', 'depths', 'num_heads', ...]
+        # Note: 'patch_size' here refers to feature patch size (default (2,2,2)), NOT input image size
+        
+        feature_size = cfg.get("feature_size", 48)
+        
+        # We should NOT pass img_size or spatial_size as they don't exist in 1.5.1 signature
         model = SwinUNETR(
-            img_size=tuple(cfg.get("img_size", [96,96,96])),
-            in_channels=in_channels, out_channels=out_channels,
-            feature_size=cfg.get("feature_size", 48),
-            depths=cfg.get("depths", [2,2,2,2]),
-            num_heads=cfg.get("num_heads", [3,6,12,24]), use_checkpoint=True,
+            in_channels=in_channels, 
+            out_channels=out_channels,
+            feature_size=feature_size,
+            depths=cfg.get("depths", [2, 2, 2, 2]),
+            num_heads=cfg.get("num_heads", [3, 6, 12, 24]), 
+            use_checkpoint=True,
+            spatial_dims=3,
         )
     elif architecture == "SEGMENTANYBONE":
         from src.models.sam_adapter import SegmentAnyBoneModel

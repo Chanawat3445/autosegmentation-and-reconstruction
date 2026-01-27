@@ -17,6 +17,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
 
+from torch.utils.tensorboard import SummaryWriter
 from monai.losses import DiceCELoss
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,11 @@ class Trainer:
         train_cfg = config["training"]
         self.num_epochs = train_cfg.get("num_epochs", 100)
         self.val_interval = train_cfg.get("val_interval", 2)
+        
+        # TensorBoard
+        tb_dir = train_cfg.get("tensorboard_dir", "./logs/tensorboard")
+        self.writer = SummaryWriter(log_dir=tb_dir)
+        logger.info(f"TensorBoard logging to: {tb_dir}")
         
         # Optimizer
         self.optimizer = AdamW(
@@ -124,9 +130,16 @@ class Trainer:
             train_loss = self.train_epoch(epoch)
             self.scheduler.step()
             
+            # TensorBoard training loss
+            self.writer.add_scalar("Loss/train", train_loss, epoch)
+            
             if (epoch + 1) % self.val_interval == 0:
                 val_loss, val_dice = self.validate()
                 logger.info(f"Epoch {epoch+1} - Train: {train_loss:.4f}, Val: {val_loss:.4f}, Dice: {val_dice:.4f}")
+                
+                # TensorBoard validation metrics
+                self.writer.add_scalar("Loss/val", val_loss, epoch)
+                self.writer.add_scalar("Metric/val_dice", val_dice, epoch)
                 
                 if val_loss < self.best_val_loss:
                     self.best_val_loss = val_loss
@@ -145,4 +158,5 @@ class Trainer:
                         break
         
         torch.save(self.model.state_dict(), self.checkpoint_dir / "last_checkpoint.pth")
+        self.writer.close()
         logger.info("Training complete!")

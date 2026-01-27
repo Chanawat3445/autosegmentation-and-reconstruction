@@ -92,8 +92,22 @@ def main():
         data_source = config["data"].get("source", "local")
         if data_source == "ctspine1k":
             from src.ctspine1k_loader import get_ctspine1k_dataloaders
+            from src.utils.data_augmentation import get_affine_transforms
+            # CTSpine1KDataset now handles normalization and cropping internally
+            ct_train_transform = get_affine_transforms(config)
+            ct_val_transform = None
+            
             train_loader, val_loader, _ = get_ctspine1k_dataloaders(
-                config, train_transforms, val_transforms, config["data"].get("ctspine1k", {}).get("mode", "3d"))
+                config, ct_train_transform, ct_val_transform, config["data"].get("ctspine1k", {}).get("mode", "3d"))
+        elif data_source == "local_nifti":
+            from src.local_nifti_loader import get_local_dataloaders
+            from src.utils.data_augmentation import get_affine_transforms
+            # LocalNiftiDataset handles normalization and cropping internally
+            # So we only pass affine augmentations (Flip, Rotate, Noise)
+            local_train_transform = get_affine_transforms(config)
+            local_val_transform = None  # Validation done without transforms (just internal center crop)
+            
+            train_loader, val_loader, _ = get_local_dataloaders(config, local_train_transform, local_val_transform)
         else:
             from src.dataset import get_dataloaders
             train_loader, val_loader, _ = get_dataloaders(config, train_transforms, val_transforms)

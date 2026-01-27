@@ -13,8 +13,14 @@ project:
 # Data Configuration
 # =============================================================================
 data:
-  # Dataset source: "local" for NIfTI files, "ctspine1k" for HuggingFace
-  source: "ctspine1k"
+  # Dataset source: "local" for processed NIfTI, "ctspine1k" for HuggingFace, "local_nifti" for raw NIfTI
+  # Dataset source: "local" for processed NIfTI, "ctspine1k" for HuggingFace, "local_nifti" for raw NIfTI
+  # Switch to local_nifti to bypass HuggingFace offline issues - we will scan files directly
+  source: "local_nifti"
+  
+  # Local paths for raw NIfTI (used when source: "local_nifti")
+  # Pointing to the HF cache directory to scan for .nii.gz files recursively
+  local_data_dir: "/lustrefs/disk/project/lt200431-ddmmss/wat/datasets--alexanderdann--CTSpine1K"
   
   # Local NIfTI paths (used when source: "local")
   root_dir: "./data/processed_nifti"
@@ -23,7 +29,8 @@ data:
   # CTSpine1K HuggingFace settings (used when source: "ctspine1k")
   ctspine1k:
     mode: "3d"                    # "3d" for volumetric, "2d" for slices
-    cache_dir: null               # Optional HuggingFace cache directory
+    # Point to the PARENT directory containing "datasets--alexanderdann--CTSpine1K"
+    cache_dir: "/lustrefs/disk/project/lt200431-ddmmss/wat"
     writer_batch_size: 5          # Lower = less RAM during Arrow conversion
     binary_mask: true             # Convert vertebrae labels to binary spine mask
   
@@ -127,6 +134,7 @@ training:
   
   # Validation frequency
   val_interval: 2      # Validate every N epochs
+  tensorboard_dir: "./logs/tensorboard"
   
   # Early stopping
   early_stopping:
