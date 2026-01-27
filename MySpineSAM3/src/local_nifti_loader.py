@@ -143,9 +143,15 @@ class LocalNiftiDataset(Dataset):
         
         # Get available pairs that match official trainset
         available_pairs = []
+        missing_count = 0
         for name in official_splits.get("trainset", []):
             if name in all_pairs:
                 available_pairs.append(all_pairs[name])
+            else:
+                missing_count += 1
+                
+        if missing_count > 0:
+            logger.warning(f"Missing {missing_count} files from official trainset (found {len(available_pairs)})")
         
         # If no official splits available, fall back to all pairs
         if not available_pairs:

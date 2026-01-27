@@ -20,7 +20,7 @@ data:
   
   # Local paths for raw NIfTI (used when source: "local_nifti")
   # Pointing to the HF cache directory to scan for .nii.gz files recursively
-  local_data_dir: "/lustrefs/disk/project/lt200431-ddmmss/wat/datasets--alexanderdann--CTSpine1K"
+  local_data_dir: "/lustrefs/disk/project/lt200431-ddmmss/wat/datasets--alexanderdann--CTSpine1K/snapshots/9b454add169b94f2c322ad6f08b66823975e8dbd"
   
   # Local NIfTI paths (used when source: "local")
   root_dir: "./data/processed_nifti"
@@ -32,7 +32,7 @@ data:
     # Point to the PARENT directory containing "datasets--alexanderdann--CTSpine1K"
     cache_dir: "/lustrefs/disk/project/lt200431-ddmmss/wat"
     writer_batch_size: 5          # Lower = less RAM during Arrow conversion
-    binary_mask: true             # Convert vertebrae labels to binary spine mask
+    binary_mask: false            # Convert vertebrae labels to binary spine mask
   
   # Hounsfield Unit windowing for bone/spine visualization
   hu_min: -100      # Lower bound (soft tissue cutoff)
@@ -55,7 +55,7 @@ model:
   architecture: "SwinUNETR"
   
   in_channels: 1      # Single channel CT
-  out_channels: 2     # 0=Background, 1=Spine
+  out_channels: 32    # 0=Background, 1-25=Vertebrae (Safe upper limit)
   
   # Path to pretrained weights (relative to project root)
   pretrained_path: "./checkpoints/pretrained_weights/swin_unetr.pth"
@@ -129,8 +129,8 @@ model:
 training:
   batch_size: 2
   learning_rate: 1.0e-4
-  weight_decay: 1.0e-5
-  num_epochs: 100
+  weight_decay: 1.0e-4
+  num_epochs: 90
   
   # Validation frequency
   val_interval: 2      # Validate every N epochs
