@@ -253,7 +253,14 @@ class Trainer:
             
             # Time inference
             with InferenceTimer() as timer:
-                outputs = self.model(images)
+                # เพิ่ม autocast สำหรับ validation (ประหยัด memory)
+                if self.use_amp:
+                    from torch.cuda.amp import autocast
+                    with autocast():
+                        outputs = self.model(images)
+                else:
+                    outputs = self.model(images)
+                    outputs = self.model(images)
             
             # Loss Components
             loss_dice = self.criterion_dice_only(outputs, labels)

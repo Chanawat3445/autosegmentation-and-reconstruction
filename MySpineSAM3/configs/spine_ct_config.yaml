@@ -61,7 +61,7 @@ data:
 # =============================================================================
 model:
   # Options: UNET, UNETR, SwinUNETR, SegmentAnyBone, MobileSAM, SAM2D, SAM3
-  architecture: "SwinUNETR"
+  architecture: "UNETR"
 
   in_channels: 1 # Single channel CT
   # CHANGED: 26 classes → 7 classes for lumbar-only segmentation (includes L6 variants)
