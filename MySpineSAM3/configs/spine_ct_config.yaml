@@ -140,7 +140,7 @@ model:
 # =============================================================================
 training:
   # OPTIMIZED: Increased batch size for better GPU utilization
-  batch_size: 4  # Was 2 → Now 4 (adjust to 2 if OOM, or 6-8 if you have 32GB+ GPU)
+  batch_size: 2  # Was 2 → Now 4 (adjust to 2 if OOM, or 6-8 if you have 32GB+ GPU)
   
   # OPTIMIZED: Reduced learning rate for stability
   learning_rate: 5.0e-5  # Was 1e-4 → Now 5e-5 (more stable)
